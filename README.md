@@ -11,7 +11,7 @@
   <liEnter the project name "adventurework2019"></li>
 </ul>
     
-### Calculate Quantity of items, Sales value & Order quantity by each Subcategory in L12M
+### Query 1: Calculate Quantity of items, Sales value & Order quantity by each Subcategory in L12M
 ```sql
 SELECT 
        FORMAT_DATETIME("%b %Y", sales_tbl.ModifiedDate) period
@@ -121,5 +121,95 @@ Dưới đây là bảng dữ liệu bạn cung cấp:
 | Nov 2013  | Touring Frames      | 201      | 97858.8952           | 13        |
 | Nov 2013  | Vests               | 451      | 17161.557            | 69        |
 
+### Query 2: Calculate % YoY growth rate by SubCategory & release top 3 cat with highest grow rate. Can use metric: quantity_item. Round results to 2 decimal
 
+```sql
+WITH
+qty_per_year AS(
+  SELECT 
+       sub_tbl.Name Name
+       ,EXTRACT(YEAR FROM sales_tbl.ModifiedDate) year
+       ,SUM(sales_tbl.OrderQty) qty_item
+  FROM `adventureworks2019.Sales.SalesOrderDetail` sales_tbl
+  LEFT JOIN `adventureworks2019.Production.Product` product_tbl
+    ON sales_tbl.ProductID = product_tbl.ProductID
+  LEFT JOIN `adventureworks2019.Production.ProductSubcategory` sub_tbl
+    ON CAST(product_tbl.ProductSubcategoryID AS INT) = sub_tbl.ProductSubcategoryID 
+  GROUP BY 1,2
+  ORDER  BY 1,2
+)
+, add_previ_qty_year AS(
+  SELECT 
+       Name
+       ,year
+       ,qty_item
+       ,LEAD(qty_item) OVER(PARTITION BY Name ORDER BY year DESC) prv_qty
+  FROM qty_per_year
+)
+, yoy_sale AS(
+  SELECT
+      Name
+      ,qty_item
+      ,prv_qty
+      ,ROUND((qty_item-prv_qty)*1.0/prv_qty, 2) qty_diff
+  FROM add_previ_qty_year
+  ORDER BY 4 DESC
+)
+, rank_yoy_sale AS (
+  SELECT
+      *
+      , DENSE_RANK() OVER(ORDER BY qty_diff DESC) rank_yoy
+  FROM yoy_sale
+)
 
+SELECT
+  Name
+  ,qty_item
+  ,prv_qty
+  ,qty_diff
+FROM rank_yoy_sale
+WHERE rank_yoy <= 3
+ORDER BY rank_yoy;
+```
+
+| Name             | qty_item | prv_qty | qty_diff |
+|------------------|----------|---------|----------|
+| Mountain Frames  | 3168     | 510     | 5.21     |
+| Socks            | 2724     | 523     | 4.21     |
+| Road Frames      | 5564     | 1137    | 3.89     |
+
+### Query 3: Ranking Top 3 TeritoryID with biggest Order quantity of every year. If there's TerritoryID with same quantity in a year, do not skip the rank number
+
+```sql
+WITH
+qty_of_terri_per_yr AS (
+  SELECT
+       EXTRACT(YEAR FROM sales_tbl.ModifiedDate) yr
+       ,TerritoryID
+       ,SUM(sales_tbl.OrderQty) order_cnt
+  FROM `adventureworks2019.Sales.SalesOrderDetail` sales_tbl
+  LEFT JOIN `adventureworks2019.Sales.SalesOrderHeader` sales_header
+    ON sales_tbl.SalesOrderID = sales_header.SalesOrderID
+  GROUP BY 1, 2
+  ORDER BY 1 DESC, 3 DESC
+)
+,terri_rank AS(
+  SELECT
+        yr
+        ,TerritoryID
+        ,order_cnt
+        ,DENSE_RANK() OVER(PARTITION BY yr ORDER BY order_cnt DESC) rk
+  FROM qty_of_terri_per_yr
+)
+
+SELECT *
+FROM terri_rank
+WHERE rk <= 3
+ORDER BY 1 DESC, 4 ;
+```
+<ul>
+
+<li>TerritoryID 4 consistently leads in the number of orders from 2011 to 2014.</li>
+<li>TerritoryID 6 consistently ranks second each year, indicating this is also a region with stable sales.</li>
+<li>TerritoryID 1 ranks third in all years, consistently ranking despite fluctuations in the number of orders.</li>
+</ul>
