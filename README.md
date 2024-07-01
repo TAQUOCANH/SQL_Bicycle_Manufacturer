@@ -27,7 +27,7 @@ LEFT JOIN `adventureworks2019.Production.ProductSubcategory` sub_tbl
 WHERE sales_tbl.ModifiedDate >= TIMESTAMP(DATE_ADD(DATE((SELECT MAX(ModifiedDate) FROM `adventureworks2019.Sales.SalesOrderDetail`)), INTERVAL -12 MONTH))
 GROUP BY 1,2
 ORDER BY 1 DESC,2 ;
-'''
+```
 Dưới đây là bảng dữ liệu bạn cung cấp:
 
 | period    | Name                | qty_item | total_sales          | order_cnt |
