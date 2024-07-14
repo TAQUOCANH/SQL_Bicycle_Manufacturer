@@ -206,6 +206,23 @@ FROM terri_rank
 WHERE rk <= 3
 ORDER BY 1 DESC, 4 ;
 ```
+
+| yr   | TerritoryID | order_cnt | rk |
+|------|-------------|-----------|----|
+| 2014 | 4           | 11632     | 1  |
+| 2014 | 6           | 9711      | 2  |
+| 2014 | 1           | 8823      | 3  |
+| 2013 | 4           | 26682     | 1  |
+| 2013 | 6           | 22553     | 2  |
+| 2013 | 1           | 17452     | 3  |
+| 2012 | 4           | 17553     | 1  |
+| 2012 | 6           | 14412     | 2  |
+| 2012 | 1           | 8537      | 3  |
+| 2011 | 4           | 3238      | 1  |
+| 2011 | 6           | 2705      | 2  |
+| 2011 | 1           | 1964      | 3  |
+
+
 <ul>
 
 <li>TerritoryID 4 consistently leads in the number of orders from 2011 to 2014.</li>
@@ -248,5 +265,81 @@ GROUP BY 1,2
 |-----|---------|----------------|
 | 2012 | Helmets | 827.64732      |
 | 2013 | Helmets | 1606.041       |
+
+
+### Query 5: Retention rate of Customer in 2014 with status of Successfully Shipped (Cohort Analysis)
+
+```sql
+WITH
+cus_info AS (
+  SELECT 
+        EXTRACT(YEAR FROM ModifiedDate) yr
+        ,EXTRACT(MONTH FROM ModifiedDate) month
+        ,CustomerID
+        ,COUNT(DISTINCT SalesOrderID) sale_cnt
+  FROM `adventureworks2019.Sales.SalesOrderHeader`
+  WHERE Status = 5 AND EXTRACT(YEAR FROM ModifiedDate) = 2014
+  GROUP BY 1,2,3
+)
+,row_num AS (
+  SELECT *
+         ,ROW_NUMBER() OVER(PARTITION BY CustomerID ORDER BY month) row_nb
+  FROM cus_info
+)
+,first_order AS(
+  SELECT
+        month first_month
+        ,yr
+        ,CustomerID
+  FROM row_num
+  WHERE row_nb = 1
+)
+,join_all_and_month_diff AS (
+  SELECT
+        cus.month
+        ,cus.yr
+        ,cus.CustomerID
+        ,f_o.first_month
+        ,CONCAT('M',' - ' ,cus.month - f_o.first_month) month_diff
+  FROM cus_info cus
+  LEFT JOIN first_order f_o
+    ON cus.CustomerID = f_o.CustomerID
+)
+, cohort_raw_data AS(
+SELECT
+      first_month as month_join
+      ,month_diff
+      ,COUNT(DISTINCT CustomerID) customer_cnt
+FROM join_all_and_month_diff
+GROUP BY 1, 2
+ORDER BY 1, 2 
+)
+
+SELECT 
+    month_join,
+    SUM(CASE WHEN month_diff = 'M - 0' THEN customer_cnt ELSE 0 END) AS M_0,
+    SUM(CASE WHEN month_diff = 'M - 1' THEN customer_cnt ELSE 0 END) AS M_1,
+    SUM(CASE WHEN month_diff = 'M - 2' THEN customer_cnt ELSE 0 END) AS M_2,
+    SUM(CASE WHEN month_diff = 'M - 3' THEN customer_cnt ELSE 0 END) AS M_3,
+    SUM(CASE WHEN month_diff = 'M - 4' THEN customer_cnt ELSE 0 END) AS M_4,
+    SUM(CASE WHEN month_diff = 'M - 5' THEN customer_cnt ELSE 0 END) AS M_5,
+    SUM(CASE WHEN month_diff = 'M - 6' THEN customer_cnt ELSE 0 END) AS M_6
+FROM cohort_raw_data
+GROUP BY month_join
+ORDER BY month_join
+;
+```
+
+| month_join | M_0 | M_1 | M_2 | M_3 | M_4 | M_5 | M_6 |
+|------------|-----|-----|-----|-----|-----|-----|-----|
+| 1          | 2076| 78  | 89  | 252 | 96  | 61  | 18  |
+| 2          | 1805| 51  | 61  | 234 | 58  | 8   | 0   |
+| 3          | 1918| 43  | 58  | 44  | 11  | 0   | 0   |
+| 4          | 1906| 34  | 44  | 7   | 0   | 0   | 0   |
+| 5          | 1947| 40  | 7   | 0   | 0   | 0   | 0   |
+| 6          | 909 | 10  | 0   | 0   | 0   | 0   | 0   |
+| 7          | 148 | 0   | 0   | 0   | 0   | 0   | 0   |
+
+
 
 
