@@ -340,6 +340,7 @@ ORDER BY month_join
 | 6          | 909 | 10  | 0   | 0   | 0   | 0   | 0   |
 | 7          | 148 | 0   | 0   | 0   | 0   | 0   | 0   |
 
-
+- **Sharp decline from the first month (M-0) to the second month (M-1):** This is the most significant drop across all cohorts, indicating that customers do not remain active for long after joining.
+- **Very low customer retention rate:** The retention rate for all cohorts is very low. Strategies to improve retention rates after the first month are needed to enhance customer engagement.
 
 
