@@ -344,3 +344,54 @@ ORDER BY month_join
 - **Very low customer retention rate:** The retention rate for all cohorts is very low. Strategies to improve retention rates after the first month are needed to enhance customer engagement.
 
 
+### Query 6: Trend of Stock level & MoM diff % by all product in 2011. If %gr rate is null then 0. Round to 1 decimal
+
+```sql
+WITH
+month_fg AS (
+  SELECT 
+        b.Name Name
+        ,EXTRACT(MONTH FROM a.ModifiedDate) mth
+        ,EXTRACT(YEAR FROM a.ModifiedDate) yr
+        ,SUM(a.StockedQty) stock_qty
+  FROM `adventureworks2019.Production.WorkOrder` a
+  LEFT JOIN `adventureworks2019.Production.Product` b
+    ON a.ProductID = b.ProductID
+  WHERE EXTRACT(YEAR FROM a.ModifiedDate) = 2011
+  GROUP BY 1, 2, 3
+  ORDER BY 1, 2 DESC
+)
+,mom_fg AS (
+  SELECT
+        *
+        ,LEAD(stock_qty,1) OVER(PARTITION BY Name ORDER BY yr, mth DESC) stock_prv
+  FROM month_fg
+)
+
+SELECT
+      *
+      ,IFNULL(ROUND((stock_qty-stock_prv)*100.0 / stock_prv,1),0) diff
+FROM mom_fg
+ORDER BY 1, 2 DESC ;
+```
+
+
+| Row | Name           | mth | yr   | stock_qty | stock_prv | diff  |
+|-----|----------------|-----|------|-----------|-----------|-------|
+| 1   | BB Ball Bearing| 12  | 2011 | 8,475     | 14,544    | -41.7 |
+| 2   | BB Ball Bearing| 11  | 2011 | 14,544    | 19,175    | -24.2 |
+| 3   | BB Ball Bearing| 10  | 2011 | 19,175    | 8,845     | 116.8 |
+| 4   | BB Ball Bearing| 9   | 2011 | 8,845     | 9,666     | -8.5  |
+| 5   | BB Ball Bearing| 8   | 2011 | 9,666     | 12,837    | -24.7 |
+| 6   | BB Ball Bearing| 7   | 2011 | 12,837    | 5,259     | 144.1 |
+| 7   | BB Ball Bearing| 6   | 2011 | 5,259     | null      | 0.0   |
+| 8   | Blade          | 12  | 2011 | 1,842     | 3,598     | -48.8 |
+| 9   | Blade          | 11  | 2011 | 3,598     | 4,670     | -23.0 |
+| 10  | Blade          | 10  | 2011 | 4,670     | 2,122     | 120.1 |
+| 11  | Blade          | 9   | 2011 | 2,122     | 2,382     | -10.9 |
+| 12  | Blade          | 8   | 2011 | 2,382     | 3,166     | -24.8 |
+| 13  | Blade          | 7   | 2011 | 3,166     | 1,280     | 147.3 |
+| 14  | Blade          | 6   | 2011 | 1,280     | null      | 0.0   |
+| ...  | ...          | ..   | ... | 1,280     | null      | 0.0   |
+
+
