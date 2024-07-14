@@ -242,7 +242,7 @@ SELECT
 FROM discount_cost_raw
 GROUP BY 1,2
 ;
-'''
+```
 
 
 | f0_ | Name    | total_cost     |
