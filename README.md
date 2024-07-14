@@ -462,3 +462,24 @@ ORDER BY 1 DESC, 7 DESC ;
 | 17  | 12    | 2011 | 752       | Road-150 Red, 52                 | 32   | 35    | 1.1   |
 | 18  | 12    | 2011 | 765       | Road-650 Black, 58               | 39   | 43    | 1.1   |
 | ...  | ...    | ... | ...       | ...               | ...   | ...    | ...   |
+
+
+### Query 8: No of order and value at Pending status in 2014
+
+```sql
+SELECT  
+        EXTRACT(YEAR FROM po_header.ModifiedDate) year
+        ,Status
+        ,COUNT(PurchaseOrderID) order_cnt
+        ,SUM(TotalDue) value
+FROM `adventureworks2019.Purchasing.PurchaseOrderHeader` po_header
+WHERE Status =1 AND EXTRACT(YEAR FROM ModifiedDate) = 2014
+GROUP BY 1,2;
+```
+
+Here's the table created based on the provided data:
+
+| Row | year | Status | order_cnt | value          |
+|-----|------|--------|-----------|----------------|
+| 1   | 2014 | 1      | 224       | 3873579.0123 |
+
