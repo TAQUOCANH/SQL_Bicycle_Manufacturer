@@ -477,7 +477,6 @@ WHERE Status =1 AND EXTRACT(YEAR FROM ModifiedDate) = 2014
 GROUP BY 1,2;
 ```
 
-Here's the table created based on the provided data:
 
 | Row | year | Status | order_cnt | value          |
 |-----|------|--------|-----------|----------------|
