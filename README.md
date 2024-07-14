@@ -213,3 +213,41 @@ ORDER BY 1 DESC, 4 ;
 <li>TerritoryID 6 consistently ranks second each year, indicating this is also a region with stable sales.</li>
 <li>TerritoryID 1 ranks third in all years, consistently ranking despite fluctuations in the number of orders.</li>
 </ul>
+
+### Query 4: Calculate Total Discount Cost belongs to Seasonal Discount for each SubCategory
+
+```sql
+WITH discount_cost_raw AS(
+SELECT 
+       sales_tbl.*
+       ,sub_tbl.Name Name
+       ,special_offer.DiscountPct
+       ,special_offer.Type
+       ,special_offer.DiscountPct * sales_tbl.OrderQty * sales_tbl.UnitPrice disc_cost
+FROM `adventureworks2019.Sales.SalesOrderDetail` sales_tbl
+LEFT JOIN `adventureworks2019.Production.Product` product_tbl
+    ON sales_tbl.ProductID = product_tbl.ProductID
+LEFT JOIN `adventureworks2019.Production.ProductSubcategory` sub_tbl
+    ON CAST(product_tbl.ProductSubcategoryID AS INT) = sub_tbl.ProductSubcategoryID
+LEFT JOIN `adventureworks2019.Sales.SpecialOffer` special_offer
+    ON sales_tbl.SpecialOfferID = special_offer.SpecialOfferID 
+WHERE LOWER(special_offer.Type) LIKE '%seasonal discount%'
+)
+
+SELECT 
+    FORMAT_TIMESTAMP("%Y", discount_cost_raw.ModifiedDate)
+    , Name
+    , sum(disc_cost) as total_cost
+    
+FROM discount_cost_raw
+GROUP BY 1,2
+;
+'''
+
+
+| f0_ | Name    | total_cost     |
+|-----|---------|----------------|
+| 2012 | Helmets | 827.64732      |
+| 2013 | Helmets | 1606.041       |
+
+
