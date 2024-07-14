@@ -392,6 +392,73 @@ ORDER BY 1, 2 DESC ;
 | 12  | Blade          | 8   | 2011 | 2,382     | 3,166     | -24.8 |
 | 13  | Blade          | 7   | 2011 | 3,166     | 1,280     | 147.3 |
 | 14  | Blade          | 6   | 2011 | 1,280     | null      | 0.0   |
-| ...  | ...          | ..   | ... | 1,280     | null      | 0.0   |
+| ...  | ...          | ..   | ... | ...     | ...      | ...   |
 
+### Query 7: Calc Ratio of Stock / Sales in 2011 by product name, by month .Order results by month desc, ratio desc. Round Ratio to 1 decimal mom yoy
 
+```sql
+WITH
+sale_data AS(
+    SELECT 
+        EXTRACT(MONTH FROM sales_tbl.ModifiedDate) month
+        ,EXTRACT(YEAR FROM sales_tbl.ModifiedDate) year
+        ,sales_tbl.ProductID
+        ,product_tbl.Name Name
+        ,COALESCE(SUM(sales_tbl.OrderQty),0) sale
+       --,IFNULL(SUM(workorder_tbl.StockedQty),0) stock
+       --,ROUND(SUM(workorder_tbl.StockedQty) *1.0 / SUM(sales_tbl.OrderQty), 1) ratio
+    FROM `adventureworks2019.Sales.SalesOrderDetail` sales_tbl
+    LEFT JOIN `adventureworks2019.Production.Product` product_tbl
+        ON sales_tbl.ProductID = product_tbl.ProductID
+  --LEFT JOIN `adventureworks2019.Production.WorkOrder` workorder_tbl
+      --ON sales_tbl.ProductID = workorder_tbl.ProductID
+    WHERE EXTRACT(YEAR FROM sales_tbl.ModifiedDate) = 2011 
+    GROUP BY 1, 2, 3, 4
+    ORDER BY 1 DESC, 5 --, 7 DESC
+)
+,stock_data AS(
+    SELECT
+            workorder_tbl.ProductID
+            ,EXTRACT(MONTH FROM workorder_tbl.ModifiedDate) month
+            ,EXTRACT(YEAR FROM workorder_tbl.ModifiedDate) year
+            ,COALESCE(SUM(workorder_tbl.StockedQty), 0) stock
+    FROM `adventureworks2019.Production.WorkOrder` workorder_tbl
+    WHERE EXTRACT(YEAR FROM workorder_tbl.ModifiedDate) = 2011
+    GROUP BY 1,2,3
+)
+
+SELECT
+    sale_data.month
+    ,sale_data.year
+    ,sale_data.ProductID
+    ,sale_data.Name
+    ,sale
+    ,stock
+    , ROUND((stock * 1.0) / sale, 1) ratio
+FROM sale_data
+FULL JOIN stock_data
+ON sale_data.ProductID = stock_data.ProductID AND sale_data.month = stock_data.month AND sale_data.year = stock_data.year
+ORDER BY 1 DESC, 7 DESC ;
+```
+
+| Row | month | year | ProductID | Name                             | sale | stock | ratio |
+|-----|-------|------|-----------|----------------------------------|------|-------|-------|
+| 1   | 12    | 2011 | 745       | HL Mountain Frame - Black, 48    | 1    | 27    | 27.0  |
+| 2   | 12    | 2011 | 743       | HL Mountain Frame - Black, 42    | 1    | 26    | 26.0  |
+| 3   | 12    | 2011 | 748       | HL Mountain Frame - Silver, 38   | 2    | 32    | 16.0  |
+| 4   | 12    | 2011 | 722       | LL Road Frame - Black, 58        | 4    | 47    | 11.8  |
+| 5   | 12    | 2011 | 747       | HL Mountain Frame - Black, 38    | 3    | 31    | 10.3  |
+| 6   | 12    | 2011 | 726       | LL Road Frame - Red, 48          | 5    | 36    | 7.2   |
+| 7   | 12    | 2011 | 738       | LL Road Frame - Black, 52        | 10   | 64    | 6.4   |
+| 8   | 12    | 2011 | 730       | LL Road Frame - Red, 62          | 7    | 38    | 5.4   |
+| 9   | 12    | 2011 | 741       | HL Mountain Frame - Silver, 48   | 5    | 27    | 5.4   |
+| 10  | 12    | 2011 | 725       | LL Road Frame - Red, 44          | 12   | 53    | 4.4   |
+| 11  | 12    | 2011 | 729       | LL Road Frame - Red, 60          | 10   | 43    | 4.3   |
+| 12  | 12    | 2011 | 732       | ML Road Frame - Red, 48          | 10   | 16    | 1.6   |
+| 13  | 12    | 2011 | 750       | Road-150 Red, 44                 | 25   | 38    | 1.5   |
+| 14  | 12    | 2011 | 751       | Road-150 Red, 48                 | 32   | 47    | 1.5   |
+| 15  | 12    | 2011 | 775       | Mountain-100 Black, 38           | 23   | 28    | 1.2   |
+| 16  | 12    | 2011 | 773       | Mountain-100 Silver, 44          | 32   | 36    | 1.1   |
+| 17  | 12    | 2011 | 752       | Road-150 Red, 52                 | 32   | 35    | 1.1   |
+| 18  | 12    | 2011 | 765       | Road-650 Black, 58               | 39   | 43    | 1.1   |
+| ...  | ...    | ... | ...       | ...               | ...   | ...    | ...   |
