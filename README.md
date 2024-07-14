@@ -28,7 +28,6 @@ WHERE sales_tbl.ModifiedDate >= TIMESTAMP(DATE_ADD(DATE((SELECT MAX(ModifiedDate
 GROUP BY 1,2
 ORDER BY 1 DESC,2 ;
 ```
-Dưới đây là bảng dữ liệu bạn cung cấp:
 
 | period    | Name                | qty_item | total_sales          | order_cnt |
 |-----------|---------------------|----------|----------------------|-----------|
